@@ -18,7 +18,15 @@ if [ "$PS1" ]; then
       elif [ "${VTE_VERSION:-0}" -ge 3405 ]; then
           PROMPT_COMMAND="__vte_prompt_command"
       else
-          PROMPT_COMMAND='printf "\033]0;APPLICATION:ENV:%s\007" "${HOSTNAME%%.*}"'
+          if [ "$TAG_APPLICATION" ] && [ "$TAG_ENVIRONMENT" ]; then
+              PROMPT_COMMAND='printf "\033]0;%s:%s:%s\007" "${TAG_APPLICATION}" "${TAG_ENVIRONMENT}" "${HOSTNAME%%.*}"'
+          elif [ -z "$TAG_APPLICATION" ] && [ "$TAG_ENVIRONMENT" ]; then
+              PROMPT_COMMAND='printf "\033]0;%s:%s\007" "${TAG_ENVIRONMENT}" "${HOSTNAME%%.*}"'
+          elif [ "$TAG_APPLICATION" ] && [ -z "$TAG_ENVIRONMENT" ]; then
+              PROMPT_COMMAND='printf "\033]0;%s:%s\007" "${TAG_APPLICATION}" "${HOSTNAME%%.*}"'
+          else
+              PROMPT_COMMAND='printf "\033]0;%s\007" "${HOSTNAME%%.*}"'
+          fi
       fi
       ;;
     screen*)

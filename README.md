@@ -1,11 +1,18 @@
 # InterestingTools
-A collection of random scripts and tools
+A collection of random scripts and tools.
+
+## ec2_tags.sh
+Script that makes use of the ec2 metadata and AWS CLI to get tag values and export them as environment variables.  Tag values for the tags Application and Environment are exported for use by a bashrc script (see ec2_bashrc below).
+
+Deployment location: ```/etc/profile.d/ec2_tags.sh```
 
 ## ec2_bashrc
-Script that makes management of terminal windows easier, which typically gets used in my AMIs.  The default /etc/bashrc script overwrites the window title every command, making it not possible to set a declarative title.  When present on an ec2 instance, it modifies the title and command prompt, for example:
+The purpose of this script is to enable easier management of terminal windows. The default /etc/bashrc script overwrites the window title every command, making it not possible to set a declarative title.  This script can be combined with ec2_tags.sh (see above) to use specific tag values to label terminal windows in an extensible fashion.  Specifically the Application and Environment tags are used to populate the terminal window title.  An example of this is:
 
 Title: ```hello-world:test:ip-172-31-18-3```
 Command prompt: ```[ec2-user: ~]$*````
+
+Deployment location: ```/etc/bashrc```
 
 How to deploy:
 1. Copy file to instance:
@@ -14,7 +21,7 @@ How to deploy:
       ```
 1. Backup existing file:      
       ```
-      $ sudo cp /etc/bashrc /etc/bashrc.bak
+      $ sudo cp /etc/bashrc /etc/bashrc.orig
       ```
 1. Sanity check file:
       ```
