@@ -10,6 +10,8 @@ REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/documen
 # Grab key tag values
 ENVIRONMENT_TAG_VALUE=$(aws ec2 describe-tags --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Environment" --region=$REGION --output=text | cut -f5)
 APPLICATION_TAG_VALUE=$(aws ec2 describe-tags --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Application" --region=$REGION --output=text | cut -f5)
+TYPE_TAG_VALUE=$(aws ec2 describe-tags --filters "Name=resource-id,Values=$INSTANCE_ID" "Name=key,Values=Type" --region=$REGION --output=text | cut -f5)
 
 export TAG_APPLICATION=$APPLICATION_TAG_VALUE
 export TAG_ENVIRONMENT=$ENVIRONMENT_TAG_VALUE
+export TAG_TYPE=$TYPE_TAG_VALUE
