@@ -6,6 +6,45 @@ Script that makes use of the ec2 metadata and AWS CLI to get tag values and expo
 
 Deployment location: ```/etc/profile.d/ec2_tags.sh```
 
+IAM Role and Policy:
+```
+{
+    "Role": {
+        "Path": "/",
+        "RoleName": "ec2DescribeTags",
+        "RoleId": "AROAJ55B77JEVTLKYLBNG",
+        "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Service": "ec2.amazonaws.com"
+                    },
+                    "Action": "sts:AssumeRole"
+                }
+            ]
+        }
+    }
+}
+
+{
+    "RoleName": "ec2DescribeTags",
+    "PolicyName": "DescribeEC2TagsPolicy",
+    "PolicyDocument": {
+        "Statement": [
+            {
+                "Action": [
+                    "ec2:DescribeTags"
+                ],
+                "Resource": "*",
+                "Effect": "Allow"
+            }
+        ]
+    }
+}
+```
+
 ## ec2_bashrc
 The purpose of this script is to enable easier management of terminal windows. The default /etc/bashrc script overwrites the window title every command, making it not possible to set a declarative title.  This script can be combined with ec2_tags.sh (see above) to use specific tag values to label terminal windows in an extensible fashion.  Specifically the Application and Environment tags are used to populate the terminal window title.  An example of this is:
 
