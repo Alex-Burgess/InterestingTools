@@ -2,9 +2,25 @@
 A collection of random scripts and tools.
 
 ## ec2_tags.sh
-Script that makes use of the ec2 metadata and AWS CLI to get tag values and export them as environment variables.  Tag values for the tags Application and Environment are exported for use by a bashrc script (see ec2_bashrc below).
+I wanted an automated way of better managing terminal windows and using the tags of an instance seemed like a natural solution.  The terminal title and command prompt are controlled by the $PROMPT_COMMAND and $PS1 environment variables, of which, the defaults are set in ```/etc/bashrc``` which is not recommended to modify.  So the idea instead, is to run a script in /etc/profile.d which will set the $PROMPT_COMMAND and $PS1 variables with tag values.
 
-Deployment location: ```/etc/profile.d/ec2_tags.sh```
+Note: it is possible to set the $PROMPT_COMMAND and $PS1 variables manually, but I found this to not be that effective.  For a start they have to be set for every SSH session and also for every user in that session. When manually setting them, I found that I would set the environment variables for the ec2-user, but the sudo to root and the title would change. So, automation!
+
+The tag data is retrieved from an AWS CLI command, so an IAM instance profile is required to permission the ec2 instance to describe tags.
+
+After deploying the script to ```/etc/profile.d``` I found that ssh times were impacted, but the only method of setting environment variables persisently for all users was to export the variables from a script within ```/etc/profile.d```.  So, the solution was deploy the script to ```/usr/local/bin``` and run the script from cron on start/restart which produced a very minimal script in ```/etc/profile.d``` which just performed the exports.
+
+In this script, I make use of tags named Application, Environment and Type, but the script is extensible and different tags could be used. An example of a title and prompt is:
+
+Title: ```hello-world:test:ip-172-31-18-3```
+Command prompt: ```[ec2-user: ~]$*````
+
+Deployment steps:
+1. Create IAM instance profile (below)
+1. Deploy ec2_tags.sh to /usr/local/bin
+1. Add line in crontab: @reboot /usr/local/bin/ec2_tags.sh
+1. Reboot instance
+1. SSH to instance to verify title and prompt
 
 Procedure to create IAM instance profile:
 
@@ -53,32 +69,13 @@ Procedure to create IAM instance profile:
       ```
 1. Create an EC2 Instance with profile:
       ```
-
+      aws ec2 run-instances
+       --image-id ami-xxxxxxxx \
+       --count 1 \
+       --instance-type t2.micro \
+       --key-name MyKeyPair \
+       --security-group-ids sg-xxxxxxxx \
+       --subnet-id subnet-xxxxxxxx \
+       --iam-instance-profile Name=EC2-Describe-Tags-Instance-Profile \
+       --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=MyInstance}]'
       ```
-
-## ec2_bashrc
-The purpose of this script is to enable easier management of terminal windows. The default /etc/bashrc script overwrites the window title every command, making it not possible to set a declarative title.  This script can be combined with ec2_tags.sh (see above) to use specific tag values to label terminal windows in an extensible fashion.  Specifically the Application and Environment tags are used to populate the terminal window title.  An example of this is:
-
-Title: ```hello-world:test:ip-172-31-18-3```
-Command prompt: ```[ec2-user: ~]$*````
-
-Deployment location: ```/etc/bashrc```
-
-How to deploy:
-1. Copy file to instance:
-      ```
-      $ scp ec2_bashrc ec2-user@<public-ip>:/tmp/ec2_bashrc
-      ```
-1. Backup existing file:      
-      ```
-      $ sudo cp /etc/bashrc /etc/bashrc.orig
-      ```
-1. Sanity check file:
-      ```
-      $ sudo diff /etc/bashrc /tmp/ec2_bashrc
-      ```
-1. Copy over new file:
-      ```
-      $ sudo cp /tmp/ec2_bashrc /etc/bashrc
-      ```
-1. Open a new terminal window and SSH to instance.
