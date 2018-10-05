@@ -15,7 +15,7 @@ In this script, I make use of tags named Application, Environment and Type, but 
 Title: ```hello-world:test:ip-172-31-18-3```
 Command prompt: ```[ec2-user: ~]$*````
 
-Deployment steps:
+### Manual Deployment steps
 1. Create IAM instance profile (below)
 1. Deploy ec2_tags.sh to /usr/local/bin
 1. Add line in crontab: @reboot /usr/local/bin/ec2_tags.sh
@@ -78,4 +78,19 @@ Procedure to create IAM instance profile:
        --subnet-id subnet-xxxxxxxx \
        --iam-instance-profile Name=EC2-Describe-Tags-Instance-Profile \
        --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=MyInstance}]'
+      ```
+
+### Cloudformation Demo Stack Deployment steps
+ec2_tags_demo.template shows one common method to easily include this script into your instances with user data.
+
+1. Create the stack:
+      ```
+      $ aws cloudformation create-stack \
+       --stack-name ec2TagsDemo \
+       --template-body file://ec2_tags_demo.template \
+       --capabilities CAPABILITY_NAMED_IAM \
+       --parameters ParameterKey=SecurityGroupID,ParameterValue=sg-xxxxxxxx \
+        ParameterKey=ImageID,ParameterValue=ami-0eafb5ee12a2cbffc \
+        ParameterKey=SubnetID,ParameterValue=subnet-xxxxxxxx \
+        ParameterKey=AppName,ParameterValue=Ec2TagsDemo
       ```

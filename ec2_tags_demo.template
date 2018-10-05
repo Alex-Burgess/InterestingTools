@@ -1,0 +1,169 @@
+{
+   "AWSTemplateFormatVersion": "2010-09-09",
+   "Description": "Demonstrates a common method of how to include the ec2_tags.sh script into an EC2 instance.  Also creates IAM instance profile.",
+   "Parameters": {
+      "AppName" : {
+          "Type" : "String",
+          "Description" : "Enter the name for the application",
+          "MinLength": 1,
+          "MaxLength": 64,
+          "AllowedPattern": "[a-zA-Z][a-zA-Z0-9-]*",
+          "ConstraintDescription": "AppName must begin with a letter and contain alphanumeric characters, or a hyphen."
+      },
+      "Environment": {
+          "Type" : "String",
+          "AllowedValues" : ["prod", "staging", "test"],
+          "Default" : "test",
+          "Description" : "Enter the environment",
+          "ConstraintDescription" : "Environment must be one of prod, uat, dev, or test"
+      },
+      "SubnetID": {
+         "Type" : "AWS::EC2::Subnet::Id",
+         "Description" : "Subnet ID"
+      },
+      "SecurityGroupID": {
+         "Type" : "AWS::EC2::SecurityGroup::Id",
+         "Description" : "Security Group ID"
+      },
+      "InstanceTypeParameter" : {
+        "Type" : "String",
+        "Default" : "t3.nano",
+        "AllowedValues" : ["t3.nano", "t3.micro", "t3.small", "t2.nano", "t2.micro", "t2.small"],
+        "Description" : "Enter t3.nano, t3.micro, t3.small, t2.nano, t2.micro, or t2.small. Default is t3.nano."
+     },
+      "ImageID": {
+         "Type" : "AWS::EC2::Image::Id",
+         "Description" : "Enter AMI for instance"
+      }
+   },
+   "Resources": {
+      "DescribeEC2TagsInstanceProfile" : {
+        "Type" : "AWS::IAM::InstanceProfile",
+        "Properties" : {
+          "Path" : "/",
+          "Roles" : [
+            {
+              "Ref" : "DescribeEC2TagsRole"
+            }
+          ]
+        }
+      },
+      "DescribeEC2TagsPolicy" : {
+        "Type" : "AWS::IAM::Policy",
+        "Properties" : {
+          "PolicyName" : "DescribeEC2TagsPolicyDemo",
+          "PolicyDocument" : {
+            "Statement" : [
+              {
+                "Effect" : "Allow",
+                "Action" : [
+                  "ec2:DescribeTags"
+                ],
+                "Resource" : "*"
+              }
+            ]
+          },
+          "Roles" : [
+            {
+              "Ref" : "DescribeEC2TagsRole"
+            }
+          ]
+        }
+      },
+      "DescribeEC2TagsRole" : {
+        "Type" : "AWS::IAM::Role",
+        "Properties" : {
+          "RoleName": "ec2DescribeTagsDemo",
+          "AssumeRolePolicyDocument": {
+            "Version" : "2012-10-17",
+            "Statement" : [
+              {
+                "Effect" : "Allow",
+                "Principal" : {
+                  "Service" : ["ec2.amazonaws.com"]
+                },
+                "Action" : [
+                  "sts:AssumeRole"
+                ]
+              }
+            ]
+          },
+          "Path" : "/"
+        }
+      },
+      "DemoInstance": {
+         "Type": "AWS::EC2::Instance",
+         "Metadata" : {
+            "Comment1" : "Use the cfn helper scripts to source and execute the ec2_tags.sh file",
+
+            "AWS::CloudFormation::Init" : {
+               "configSets" : {
+                  "Install" : [ "TagTool" ]
+               },
+               "TagTool" : {
+                  "files" : {
+                     "/usr/local/bin/ec2_tags.sh" : {
+                        "source": "https://raw.githubusercontent.com/Alex-Burgess/InterestingTools/master/ec2_tags.sh",
+                        "mode": "000744",
+                        "user": "root",
+                        "group": "root"
+                     }
+                  },
+                  "commands" : {
+                     "create_tag_export_file" : {
+                        "command" : "/usr/local/bin/ec2_tags.sh"
+                     },
+                  }
+               }
+            }
+         },
+         "Properties": {
+            "KeyName": "AlexMain",
+            "ImageId": { "Ref" : "ImageID"},
+            "InstanceType": { "Ref" : "InstanceTypeParameter" },
+            "SubnetId": { "Ref" : "SubnetID" },
+            "SecurityGroupIds" : [ { "Ref" : "SecurityGroupID" } ],
+            "IamInstanceProfile" : { "Ref" : "DescribeEC2TagsInstanceProfile" },
+            "Monitoring": false,
+            "Tags": [
+               { "Key" : "Name", "Value" : "Ec2TagsDemoInstance" },
+               { "Key" : "Application", "Value" : { "Ref" : "AppName" } },
+               { "Key" : "Environment", "Value" :  { "Ref" : "Environment" } },
+               { "Key" : "Type", "Value" : "Ec2TagsDemo" }
+            ],
+            "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
+               "#!/bin/bash -xe\n",
+               "yum install -y aws-cfn-bootstrap\n",
+
+               "# Install the files and packages from the metadata\n",
+               "/opt/aws/bin/cfn-init -v ",
+               "         --stack ", { "Ref" : "AWS::StackName" },
+               "         --resource DemoInstance ",
+               "         --configsets Install ",
+               "         --region ", { "Ref" : "AWS::Region" }, "\n",
+
+               "# Signal the status from cfn-init\n",
+               "/opt/aws/bin/cfn-signal -e $? ",
+               "         --stack ", { "Ref" : "AWS::StackName" },
+               "         --resource DemoInstance ",
+               "         --region ", { "Ref" : "AWS::Region" }, "\n"
+            ]]}}
+         },
+         "CreationPolicy" : {
+            "ResourceSignal" : {
+               "Timeout" : "PT5M"
+            }
+         }
+      }
+   },
+   "Outputs" : {
+      "PublicIP" : {
+         "Description" : "Public IP of demo instance",
+         "Value" : { "Fn::GetAtt" : ["DemoInstance", "PublicIp"] }
+      },
+      "DescribeEC2TagsInstanceProfileName" : {
+         "Description" : "EC2 Instance profile name",
+         "Value" : { "Ref" : "DescribeEC2TagsInstanceProfile" }
+      }
+   }
+}
