@@ -1,4 +1,4 @@
-# InterestingTools
+# UsefulTools
 A collection of random scripts and tools.
 
 ## ec2_tags.sh
